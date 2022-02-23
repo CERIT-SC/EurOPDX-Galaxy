@@ -1,0 +1,75 @@
+<tool id="create_tsv_output" name="Create TSV Files" version="1.0.0">
+    <description>for selected data</description>
+    <requirements>
+        <requirement type="package" version="1.0.0">pandas</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+            #set result_file="created_results_tsv"
+            python3 '${__tool_directory__}/create_tsv_output.py'
+            #if $select_type.add == "paired_collection"
+                "$select_data_type.value"
+                #if $select_data_type.value == "expression"
+                    --input_file "${select_type.in_1.genewithgenename}"
+                #else
+		    --input_file "${select_type.in_1.DPfiltered}
+                #end if
+                --sample_id "${select_type.in_1.element_identifier}"
+                --output_file "$result_file"
+	   #else
+                "$select_data_type.value"
+                --input_file "${select_type.in_1}"
+                --sample_id "${select_type.in_1.element_identifier}"
+		--output_file "$result_file"
+            #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="select_type">
+            <param name="add" type="select" label="Input Type">
+                <option value="single_dataset">Single Dataset (One Sample)</option>
+                <option value="paired_collection" selected="true">List Collection (Multiple Samples)</option>
+            </param>
+            <when value="single_dataset">
+		    <param format="tabular" name="in_1" type="data" label="Select Dataset"/>
+            </when>
+            <when value="paired_collection">
+                <param name="in_1" type="data_collection" collection_type="list" label="Select Collection"/>
+            </when>
+    	</conditional>
+    	<param format="txt" name="in_2" type="text" label="Sample Identifier (Single dataset only)" optional="true"
+                       help="This name will be used as a column identifier in the resultant table. e.g., CRC0096LM, must be the same as the identifier used in the sampleplatform file, otherwise error will be encountered"/>
+        <param name="select_data_type" type="select" label="Select Data Type">
+            <option value="expression">Expression</option>
+            <option value="mutation" selected="true">Mutation</option>
+        </param>
+	<param format="txt" name="filter" type="data" label="Select filter file (optional)" optional="True" help="filter ou genes except the ones in file, one HGNC symbol per line eg. 'TSPAN6\nTNMD\nDPM1'"/>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="tabular" label="Created TSV"
+              from_work_dir="created_results_tsv"/>
+    </outputs>
+
+    <help>
+.. class:: infomark
+
+This tool is used to generate tsv files for each selected sample. This tool can handle expression and mutation data conversion.
+
+This tool has following input and output files.
+
+**Inputs**
+
+- Input Type
+
+  - List Collection (Multiple Samples): Expression or Mutation Data List.
+  - Single Dataset (One sample): Expression or Mutation Data and Sample Identifier.
+- Input Data Type: Expression or Mutation
+
+**Outputs**
+
+Based on the input selection, one of the following will be output.
+
+- List Collection (Multiple Samples): Created TSV Collection.
+- Single Dataset (One sample): Created TSV Dataset.
+    </help>
+</tool>

@@ -1,0 +1,128 @@
+<tool id="dh-importer" name="EurOPDX Datahub importer" version="1.1.0">
+    <description>send data from Galaxy to EurOPDX Datahub</description>
+    <requirements>
+        <requirement type="package" version="1.0.0">pandas</requirement>
+        <requirement type="package" version="1.2.0">xlrd</requirement>
+        <requirement type="package" version="2.24.0">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+	#if $inputdata.type_selector == "expression" or $inputdata.type_selector == "featurecounts"
+            ## Set up output file
+            #set outputfile='PIPELINE_expression.tsv'
+
+            python3 '$__tool_directory__/dh-importer.py' '$inputdata.type_selector'
+            --metadata '$inputdata.metainfo.metadata'
+            --sampleplatform '$inputdata.metainfo.sampleplatform'
+            --mappings '$inputdata.metainfo.mappings'
+            --genome_assembly '$inputdata.metainfo.genome_assembly'
+            --datafile '$inputdata.expression.datafile'
+            --endpoint '$connection.endpoint'
+            --password '$connection.password'
+            #if $connection.insecure
+            --insecure
+            #end if
+            #if $connection.reset
+            --reset
+            #end if
+            --outputfile '$outputfile'
+        #else if $inputdata.type_selector == "mutation"
+            ## Set up output file
+            #set outputfile='PIPELINE_mutation.tsv'
+
+            python3 '$__tool_directory__/dh-importer.py' 'mutation'
+            --metadata '$inputdata.metainfo.metadata'
+            --sampleplatform '$inputdata.metainfo.sampleplatform'
+            --mappings '$inputdata.metainfo.mappings'
+            --genome_assembly '$inputdata.metainfo.genome_assembly'
+            --datafile '$inputdata.mutation.datafile'
+            --endpoint '$connection.endpoint'
+            --password '$connection.password'
+            #if $connection.insecure
+            --insecure
+            #end if
+            #if $connection.reset
+            --reset
+            #end if
+            --outputfile '$outputfile'
+        #else
+           echo 'TBA'
+        #end if
+    ]]>
+    </command>
+    <inputs>
+        <conditional name="inputdata">
+            <param name="type_selector" type="select" label="Select type of data">
+                <option value="featurecounts" selected="true">Expression Featurecounts format (RNA-seq)</option>
+		<option value="expression">Expression (RNA-seq)</option>
+		<option value="mutation">Mutation (DNA-seq)</option>
+            </param>
+            <when value="featurecounts">
+                <section name="metainfo" title="Metadata" expanded="false">
+                    <param name="metadata" label="Metadata.xlsx" type="data" format="xlsx" optional="false"/>
+                    <param name="sampleplatform" label="Sampleplatform.xlsx" type="data" format="xlsx"
+                           optional="false"/>
+                    <param name="mappings" label="Mappings.json" type="data" format="json" optional="false"/>
+                    <param name="genome_assembly" label="Genome Assembly" type="text" value="Hg38" optional="false"/>
+                </section>
+                <section name="expression" title="Expression" expanded="false">
+                    <param name="datafile" label="Expression Dataset" type="data" format="tabular" optional="false"/>
+                </section>
+	    </when>
+	    <when value="expression">
+                <section name="metainfo" title="Metadata" expanded="false">
+                    <param name="metadata" label="Metadata.xlsx" type="data" format="xlsx" optional="false"/>
+                    <param name="sampleplatform" label="Sampleplatform.xlsx" type="data" format="xlsx"
+                           optional="false"/>
+                    <param name="mappings" label="Mappings.json" type="data" format="json" optional="false"/>
+                    <param name="genome_assembly" label="Genome Assembly" type="text" value="Hg38" optional="false"/>
+                </section>
+                <section name="expression" title="Expression" expanded="false">
+                    <param name="datafile" label="Expression Dataset" type="data" format="tabular" optional="false"/>
+                </section>
+            </when>
+            <when value="mutation">
+                <section name="metainfo" title="Metadata" expanded="false">
+                    <param name="metadata" label="Metadata.xlsx" type="data" format="xlsx" optional="false"/>
+                    <param name="sampleplatform" label="Sampleplatform.xlsx" type="data" format="xlsx"
+                           optional="false"/>
+                    <param name="mappings" label="Mappings.json" type="data" format="json" optional="false"/>
+                    <param name="genome_assembly" label="Genome Assembly" type="text" value="Hg38" optional="false"/>
+                </section>
+                <section name="mutation" title="Mutation" expanded="false">
+                    <param name="datafile" label="Mutations" type="data" format="tabular" optional="false"/>
+                </section>
+            </when>
+        </conditional>
+        <section name="connection" title="Connection" expanded="false">
+            <param name="endpoint" label="Sandbox API endpoint" value="https://sandbox1.edirex.ics.muni.cz:5001"
+                   type="text" optional="false"/>
+            <param name="password" label="Password" type="text" optional="false"/>
+            <param name="insecure" label="Disable TLS checks" type="boolean" checked="true"/>
+            <param name="reset" label="Reset Sand Box" type="boolean" checked="true" help="Default is reset='Yes'."/>
+        </section>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="tabular" label="Exported Expression Dataset" from_work_dir="PIPELINE_expression.tsv">
+            <filter>inputdata['type_selector'] == 'expression' or inputdata['type_selector'] == 'featurecounts' </filter>
+        </data>
+        <data name="out_2" format="tabular" label="Exported Mutation Dataset" from_work_dir="PIPELINE_mutation.tsv">
+            <filter>inputdata['type_selector'] == 'mutation'</filter>
+        </data>
+    </outputs>
+
+    <help>
+.. class:: infomark
+
+This tool is used to format, upload and export galaxy pipeline data to the DataHub (Sand Box).
+
+**Inputs**
+
+- Metadata
+- Sample Data
+- Connection Info
+
+**Outputs**
+
+- Exported Dataset to Sandbox
+    </help>
+</tool>

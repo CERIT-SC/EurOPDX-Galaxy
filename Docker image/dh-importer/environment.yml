@@ -1,0 +1,10 @@
+name: app-conda-env
+channels:
+- defaults
+- conda-forge
+- bioconda
+dependencies:
+- python=3.6
+- pandas=1.0
+- xlrd=1.2
+- requests=2.24

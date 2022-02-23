@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='utf-8'?>
+<toolbox monitor="true">
+  <section id="getext" name="Get Data">
+    <tool file="data_source/upload.xml" />
+    <tool file="data_source/ucsc_tablebrowser.xml" />
+    <tool file="data_source/ucsc_tablebrowser_archaea.xml" />
+    <tool file="data_source/sra.xml" />
+    <tool file="data_source/ebi_sra.xml" />
+    <tool file="data_source/fly_modencode.xml" />
+    <tool file="data_source/eupathdb.xml" />
+    <tool file="data_source/hbvar.xml" />
+  </section>
+  <section id="collection_operations" name="Collection Operations">
+    <tool file="${model_tools_path}/unzip_collection.xml" />
+    <tool file="${model_tools_path}/zip_collection.xml" />
+    <tool file="${model_tools_path}/filter_failed_collection.xml" />
+    <tool file="${model_tools_path}/filter_empty_collection.xml" />
+    <tool file="${model_tools_path}/flatten_collection.xml" />
+    <tool file="${model_tools_path}/merge_collection.xml" />
+    <tool file="${model_tools_path}/relabel_from_file.xml" />
+    <tool file="${model_tools_path}/filter_from_file.xml" />
+    <tool file="${model_tools_path}/sort_collection_list.xml" />
+    <tool file="${model_tools_path}/tag_collection_from_file.xml" />
+    <tool file="${model_tools_path}/apply_rules.xml" />
+    <tool file="${model_tools_path}/build_list.xml" />
+    <tool file="${model_tools_path}/extract_dataset.xml" />
+  </section>
+  <section id="PRE_DATA_PDX" name="Prepare Reference Data">
+    <tool file="pdx-analysis-workflows/JAX_RNA/xenome/xenome_index_create.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/rsem_alignment/rsem_prepare_reference.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/reference_flat/create_reference_flat.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/reference_flat/create_r_rna.xml" />
+    <tool file="pdx-analysis-workflows/CTP_PDX/bwa_index.xml" />
+    <tool file="pdx-analysis-workflows/CTP_PDX/cosmic_coding_noncoding_sorted.xml" />
+    <tool file="pdx-analysis-workflows/snake-RNA/star_index.xml" />
+  </section>
+  <section id="unito_pipeline" name="UNITO pipeline tools">
+    <tool file="pdx-analysis-workflows/unito/star_alignment.xml" />
+    <tool file="pdx-analysis-workflows/snake-RNA/sambamba.xml" />
+    <tool file="pdx-analysis-workflows/snake-RNA/featurecounts.xml" />
+  </section>
+  <section id="jax_RNA" name="Jax RNA-seq workflow tools">
+    <tool file="pdx-analysis-workflows/JAX_RNA/reads_quality/qual_statistics.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/xenome/xenome_classification_RNA.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/rsem_alignment/rsem_alignment.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/picard_alignment/picard_alignment_metrics.xml" />
+    <tool file="pdx-analysis-workflows/JAX_RNA/genename_normalization/add_gene_name_normalization_out.xml" />
+  </section>
+  <section id="jax_CTP" name="Jax CTP workflow tools" >
+    <label id="vpp" text="Variant Pre-processing" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/pindel.xml" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/variant_pre_proc_1.xml" />
+    <label id="vca" text="Variant Calling" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/variant_calling.xml" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/variant_filtration.xml" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/variant_filtration_pindel.xml" />
+	<tool file="pdx-analysis-workflows/CTP_PDX/variant_annotation.xml" />
+    <label id="summary_stat" text="Pipeline Summary Stats"/>	
+	<tool file="pdx-analysis-workflows/CTP_PDX/aggregate_stats_updated.xml" />
+        <tool file="pdx-analysis-workflows/CTP_PDX/gatkcoveragestats.xml" />
+  </section>
+  <section id="snake_RNA" name="Snakemake RNA workflow" >
+	<tool file="pdx-analysis-workflows/snake-RNA/cutadapt.xml" />  
+	<tool file="pdx-analysis-workflows/snake-RNA/fastqc.xml" />
+	<tool file="pdx-analysis-workflows/unito/star_alignment.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/samtools.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/ngs_disambiguate.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/sambamba.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/featurecounts.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/merge_normalize.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/filter_genes.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/multiqc.xml" />
+  </section>
+  <section id="snake_CTP" name="Snakemake Variant-calling workflow" >
+	<tool file="pdx-analysis-workflows/snake-RNA/cutadapt.xml" />
+	<tool file="pdx-analysis-workflows/snake-RNA/fastqc.xml" />
+	<tool file="pdx-analysis-workflows/CTP_PDX/bwa_mem.xml" />
+        <tool file="pdx-analysis-workflows/snake-RNA/samtools.xml" />
+        <tool file="pdx-analysis-workflows/snake-RNA/ngs_disambiguate.xml" />
+        <tool file="pdx-analysis-workflows/snake-RNA/sambamba.xml" />
+        <tool file="pdx-analysis-workflows/snake-VAR/picard_MarkDuplicates.xml" />
+        <tool file="pdx-analysis-workflows/snake-VAR/freebayes.xml" />
+        <tool file="pdx-analysis-workflows/snake-VAR/bcftools_call.xml" />
+        <tool file="pdx-analysis-workflows/snake-RNA/multiqc.xml" />
+	<tool file="pdx-analysis-workflows/snake-VAR/snpSift_filter.xml" />
+	<tool file="pdx-analysis-workflows/snake-VAR/snpSift_anotate.xml" />
+	<tool file="pdx-analysis-workflows/snake-VAR/snpSift_extractFields.xml" />
+	<tool file="pdx-analysis-workflows/snake-VAR/snpEff.xml" />
+	<tool file="pdx-analysis-workflows/snake-VAR/snpSift_dbnsfp.xml" />
+</section>
+<section id="CNV_PDX" name="Copy-number variants workflow" >
+	<tool file="pdx-analysis-workflows/CNV_PDX/gender_single_tool.xml" />
+</section>
+<section id="snake_CNV" name="Snakemake Copy-number variants workflow" >
+        <tool file="pdx-analysis-workflows/snake-CNV/qdnaseq.xml" />
+</section>
+<section id="dh-importer" name="EurOPDX DataHub importer">
+    <tool file="dh-importer/create_tsv_output.xml" />
+    <tool file="dh-importer/join_tsv_output.xml" />
+    <tool file="dh-importer/dh-importer.xml" />
+</section>
+</toolbox>
