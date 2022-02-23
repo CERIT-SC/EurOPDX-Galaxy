@@ -1,0 +1,78 @@
+<tool id="feature_counts" name="Concetante not rRNA reads featurecounts" version="1.0.0">
+    <description></description>
+    <requirements>
+   	<container type="docker">edirex/unito:first</container> 
+    </requirements>
+    <stdio>
+        <exit_code range="1:" level="fatal"/>
+    </stdio>
+    <command>
+	<![CDATA[
+	#if $input.type == "sample"
+		featureCounts -T 8 -g gene_name -t exon -a "$gtf" -o featurecounts.txt "$in_s"
+	#else
+		featureCounts -T 8 -g gene_name -t exon -a "$gtf" -o featurecounts.txt "${input.list.bam}"
+	#end if
+	&& perl /matrix_reduce.pl featurecounts.txt | grep -v '^#' | perl /fasta2tab.pl | awk {'printf ("%s\t%s\n", $2, $8)'} | sed 's:/.*:RNA-seq count:' > counts 
+	]]>
+    </command>
+    <inputs>
+        <conditional name="input">
+            <param name="type" type="select" label="Select input type">
+                <option value="sample" selected="true">Single-end reads (Single sample)</option>
+                <option value="collection">Multiple single-end reads files (Collection)</option>
+            </param>
+            <when value="sample">
+                <param format="bam" name="in_s" type="data" label="Select Human Reads (FastQ)"/>
+            </when>
+            <when value="collection">
+                <param name="list" type="data_collection" collection_type="list" label="Select Single-end Reads Collection"/>
+            </when>
+    	</conditional>
+	<param format="gtf" name="gtf" type="data" label="Select Human GTF File"/>
+    </inputs>
+    <outputs>
+        <!-- Single-end or Paired-end reads single sample output -->
+        <data name="out_1" format="tabular" from_work_dir="counts" label="Featurecounts">
+		<filter>input['type'] == 'sample'</filter>
+        </data>
+	<data name="out_2" format="txt" from_work_dir="featurecounts.txt.summary" label="Featurecounts summary">
+            <filter>input['type'] == 'sample'</filter>
+	</data>
+
+        <!-- Single-end reads multiple sample output -->
+        <collection name="list_output" type="list"
+                    label="Featurecounts">
+            <data name="counts" format="tabular" from_work_dir="counts" label="Featurecounts" hidden="true"/>
+            <data name="summary" format="txt" from_work_dir="featurecounts.txt.summary" label="Featurecounts sumary" hidden="true"/>
+            <filter>input['type'] == 'collection'</filter>
+        </collection>
+    </outputs>
+
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        Implementation of the fourth step of UNITO pipeline - Concatenate not rRNA reads featurecounts of all samples
+
+
+        This tool has following input and output dataset/collections.
+
+        **Inputs**
+
+        - Input Type:
+
+        - Sorted BAM dataset (single sample)
+
+        - Sorted BAM collection (multiple samples)
+
+
+        **Outputs**
+
+        Based on the input selection, one of the following will be output.
+
+        - Samples collection: Collection of Featurecounts files and featurecounts statistics
+        - Single sample: Featurecounts file and featurecounts statistics file.
+        ]]>
+    </help>
+</tool>

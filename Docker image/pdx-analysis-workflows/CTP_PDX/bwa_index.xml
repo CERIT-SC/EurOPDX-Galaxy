@@ -1,0 +1,35 @@
+<tool id="bwa_index_creation" name="Create BWA-Index" version="1.0.0">
+     <description>for use with BWA-Mem</description>
+    <requirements>
+        <requirement type="package" version="0.7.17">bwa</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+            rm -rf "$in_2" && mkdir -p "$in_2" &&
+            bwa index -p "$in_2"/"$in_3" "$in_1" &&
+            echo "Job Completed Successfully:" > bwa-index.txt
+        ]]>
+    </command>
+    <inputs>
+        <param format="fasta" name="in_1" type="data" label="Human Reference File" help="Downloaded from https://storage.cloud.google.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta"/>
+        <param format="txt" name="in_2" type="hidden" label="bwa-index-loc" value="/galaxy/reference-data/bwa-index/"/>
+        <param format="txt" name="in_3" type="hidden" label="bwa-index-pre" value="ucsc_idx_pfx"/>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="txt" from_work_dir="bwa-index.txt" label="BWA-Mem Index Result"/>
+    </outputs>
+
+    <help>
+        Run this tool only once when using galaxy for the first time or reference file has changed.
+
+        This tool has following input and output files.
+
+        Inputs:
+
+        1) Human Reference File: Downloaded from https://storage.cloud.google.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta
+
+        Outputs:
+
+        1) Tool execution result
+    </help>
+</tool>

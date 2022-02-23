@@ -1,0 +1,100 @@
+<tool id="star_alignment" name="STAR Alignment" version="2.7.8a">
+    <description>to union on Human and Mouse genome</description>
+    <requirements>
+    	<requirement type="package" version="2.7.8a">star</requirement>
+    </requirements>
+    <stdio>
+        <exit_code range="1:" level="fatal"/>
+    </stdio>
+    <command>
+	<![CDATA[
+	#if $input.type == "single_end_single_sample"
+		STAR --genomeDir /galaxy/reference-data/'$genome.type'/ --genomeLoad NoSharedMemory --runThreadN 6 --readFilesIn "$input.in_u_s" --outSAMtype BAM Unsorted --outSAMunmapped Within --outFilterMultimapNmax 10 --outFilterMultimapScoreRange 3 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.04
+	#else if $input.type == "single_end_collection"
+		STAR --genomeDir /galaxy/reference-data/'$genome.type'/ --genomeLoad NoSharedMemory --runThreadN 6 --readFilesIn "${input.list_single.reads}" --outSAMtype BAM Unsorted --outSAMunmapped Within --outFilterMultimapNmax 10 --outFilterMultimapScoreRange 3 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.04
+	#else if $input.type == "paired_end_single_sample"
+		STAR --genomeDir /galaxy/reference-data/'$genome.type'/ --genomeLoad NoSharedMemory --runThreadN 6 --readFilesIn "$input.paired_forward_reads" "$input.paired_reverse_reads" --outSAMtype BAM Unsorted --outSAMunmapped Within --outFilterMultimapNmax 10 --outFilterMultimapScoreRange 3 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.04
+	#else
+		STAR --genomeDir /galaxy/reference-data/'$genome.type'/ --genomeLoad NoSharedMemory --runThreadN 6 --readFilesIn "${input.list_paired.forward}" "${input.list_paired.reverse}" --outSAMtype BAM Unsorted --outSAMunmapped Within --outFilterMultimapNmax 10 --outFilterMultimapScoreRange 3 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.04
+	#end if	
+	]]>
+    </command>
+    <inputs>
+        <conditional name="input">
+            <param name="type" type="select" label="Select input type">
+                <option value="single_end_single_sample" selected="true">Single-end reads (Single file)</option>
+                <option value="paired_end_single_sample">Paired-end reads (Single file)</option>
+                <option value="single_end_collection">Multiple single-end reads files (Collection)</option>
+                <option value="paired_end_collection">Multiple paired-end reads files (Collection)</option>
+            </param>
+            <when value="single_end_single_sample">
+                <param format="fastq" name="in_u_s" type="data" label="Select Human Reads (FastQ)"/>
+            </when>
+            <when value="paired_end_single_sample">
+	    	<param format="fastq" name="paired_forward_reads" type="data" label="Input Forward Reads (FastQ)"/>
+                <param format="fastq" name="paired_reverse_reads" type="data" label="Input Reverse Reads (FastQ)"/>
+	    </when>
+            <when value="single_end_collection">
+                <param name="list_single" type="data_collection" collection_type="list"
+                       label="Select Single-end Reads Collection"/>
+            </when>
+            <when value="paired_end_collection">
+                <param name="list_paired" type="data_collection" collection_type="paired"
+                       label="Select Paired-end Reads Collection"/>
+            </when>
+        </conditional>
+	<conditional name="genome">
+                <param name="type" type="select" label="Select STAR index">
+                        <option value="star_combined" selected="true">Index Built from Human and Mouse refrence files (combined)</option>
+			<option value="star_human">Index Built from Human refrence files </option>
+			<option value="star_mouse">Index Built from Mouse refrence files </option>
+		</param>	
+	</conditional>
+    </inputs>
+    <outputs>
+        <!-- Single-end or Paired-end reads single sample output -->
+	<data name="star_bam" format="unsorted.bam" from_work_dir="Aligned.out.bam" label="STAR Unsorted BAM"/>
+		<!--<filter>input['type'] == 'single_end_single_sample' or input['type'] == 'paired_end_single_sample'</filter>
+        </data>
+	<data name="star_log" format="txt" from_work_dir="Log.final.out" label="STAR Log">
+		<filter>input['type'] == 'single_end_single_sample' or input['type'] == 'paired_end_single_sample'</filter>
+	</data>-->
+
+        <!-- Single-end reads multiple sample output 
+        <collection name="list_output_unpaired_bam" type="list" label="STAR Unsorted BAM">
+                <data name="unsorted_bam" format="unsorted.bam" from_work_dir="Aligned.out.bam" label="STAR Unsorted BAM" hidden="true"/>
+                <data name="out_log" format="txt" from_work_dir="Log.final.out" label="STAR Log" hidden="true"/>
+                <filter>input['type'] == 'single_end_collection' or input['type'] == 'paired_end_collection'</filter>
+	</collection>-->
+
+        <!-- Summary stats outputs -->
+        <!--<data name="stats1" format="txt" label="RSEM Statistics"/>-->
+    </outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        STAR aligner with default pre-built indexes from human, mouse and union of human and mouse genomes.
+
+        .. class:: warningmark
+
+        Please note, if you wish to use index built from custom Fasta and GTF file you need to run *Prepare STAR index* before executing this tool.
+
+        This tool has following input and output dataset/collections.
+
+        **Inputs**
+
+        - Input Type:
+
+        Single sample : paired or unpaired Fastq file 
+	Collection :	collection of paired samples or for unpaired samples collection built from rules(see documentation)
+
+        **Outputs**
+
+        Based on the input selection, one of the following will be output.
+
+        - Samples collection: Collection of Unsorted BAM files
+        - Single sample: Unsorted BAM.
+        ]]>
+    </help>
+</tool>

@@ -1,0 +1,67 @@
+<tool id="star_index" name="Prepare STAR index" version="1.0.0">
+    <description>for use with STAR Alignment</description>
+    <requirements>
+    	<requirement type="package" version="2.7.8a">star</requirement>
+    </requirements>
+    <stdio>
+         <exit_code range="1:" level="fatal" />
+    </stdio>
+    <command>
+        <![CDATA[
+		rm -rf /galaxy/reference-data/'$format.type' && mkdir -p /galaxy/reference-data/'$format.type' &&
+                #if $format.type == "combined"
+                        ln -s "$in_3" human.fasta && ln -s "$in_4" mouse.fasta && cat "$in_1" "$in_2" > combined.gtf &&
+                        STAR --runThreadN 6 --genomeSAsparseD 3 --runMode genomeGenerate --limitGenomeGenerateRAM 25000000000 --genomeDir /galaxy/reference-data/'$format.type' --genomeFastaFiles human.fasta mouse.fasta --sjdbGTFfile combined.gtf --outFileNamePrefix /galaxy/reference-data/'$format.type' --sjdbOverhang 99
+                #else
+                        ln -s "$in_3" human.fasta && ln -s "$in_1" combined.gtf &&
+                        STAR --runThreadN 6 --genomeSAsparseD 2 --runMode genomeGenerate --limitGenomeGenerateRAM 25000000000 --genomeDir /galaxy/reference-data/'$format.type' --genomeFastaFiles human.fasta --sjdbGTFfile combined.gtf --outFileNamePrefix /galaxy/reference-data/'$format.type' --sjdbOverhang 99
+                #end if 
+                && echo "Job Completed Successfully:" > star_index.txt &&
+                ls -la /galaxy/reference-data/'$format.type' >> star_index.txt
+	]]>
+    </command>
+    <inputs>
+        <conditional name="format">
+                <param name="type" type="select" label="Select type of index">
+                        <option value="simple_human" selected="true">Build index from Human genome</option>
+			<option value="simple_mouse" selected="true">Build index from Mouse genome</option>
+			<option value="combined">Build index from graft and host genomes</option>
+                </param>
+        	<when value="star_human">
+                	<param format="gtf" name="in_1" type="data" label="GTF File" help="GTF annotation file"/>
+                	<param format="fasta" name="in_3" type="data" label="Reference Genome File"/>
+		</when>
+		<when value="star_mouse">
+                        <param format="gtf" name="in_1" type="data" label="GTF File" help="GTF annotation file"/>
+                        <param format="fasta" name="in_3" type="data" label="Reference Genome File"/>
+                </when>
+		<when value="star_combined">
+			<param format="gtf" name="in_1" type="data" label="Human GTF File" help="Human GTF annotation file"/>
+			<param format="gtf" name="in_2" type="data" label="Mouse GTF File" help="Mouse GTF annotation file"/>
+			<param format="fasta" name="in_3" type="data" label="Human Reference File"/>
+			<param format="fasta" name="in_4" type="data" label="Mouse Reference File"/>
+		</when>
+	</conditional>	
+    </inputs>
+    <outputs>
+        <data name="out_1"  format="txt" from_work_dir="star_index.txt" label="STAR index Job" />
+    </outputs>
+    <help><![CDATA[
+        Run this tool only once when using galaxy for the first time or reference/annotation files have been changed.
+
+        This tool has following input and output files.
+
+        Inputs:
+
+	1) Gene Annotation File (combined Human and Mouse GTF)
+
+	2) Human Reference fasta File
+
+	3) Mouse Reference fasta File
+
+	Outputs:
+
+        1) STAR index Job: A list of files created.
+        ]]>
+    </help>
+</tool>

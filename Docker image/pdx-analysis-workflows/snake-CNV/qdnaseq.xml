@@ -1,0 +1,92 @@
+<tool id="qdnaseq" name="Qdnaseq" version="1.16.0">
+    <description>Quantitative DNA sequencing for chromosomal aberrations</description>
+    <requirements>
+        <requirement type="package" version="1.16.0">bioconductor-qdnaseq</requirement>
+    </requirements>
+    <stdio>
+        <exit_code range="1:" level="fatal"/>
+    </stdio>
+    <command>
+        <![CDATA[
+	#if $input.type == "sample"
+		qdnaseq_anotate
+	#else	
+		qdnaseq_anotate
+	#end if
+	]]>
+    </command>
+    <inputs>
+        <conditional name="input">
+            <param name="type" type="select" label="Select input type">
+                <option value="sample" selected="true">Single unsorted bam file (Single sample)</option>
+                <option value="collection">Multiple unsorted bam files (Collection)</option>
+            </param>
+            <when value="sample">
+                <param format="unsorted.bam" name="in_h" type="data" label="Select Human unsorted bam"/>
+            </when>
+            <when value="collection">
+                <param name="list_human" type="data_collection" collection_type="list" multiple="True"
+                       label="Select Human unsorted bam collection"/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+	    <data name="out_1" label="Qdnaseq"/>
+        <!-- Single-end or Paired-end reads single sample output 
+        <data name="out_1" format="bam" from_work_dir="out.disambiguatedSpeciesA.bam" label="NGS Disambiguated Human BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_2" format="bam" from_work_dir="out.disambiguatedSpeciesB.bam" label="NGS Disambiguated Mouse BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_3" format="bam" from_work_dir="out.ambiguousSpeciesA.bam" label="NGS ambiguous Human-Mouse BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_4" format="bam" from_work_dir="out.ambiguousSpeciesB.bam" label="NGS ambiguous Mouse-Human BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+
+	 Single-end reads multiple sample output
+        <collection name="list_output" type="list"
+                    label="Disambiguated BAM" visible="true" structured_like="input.list_human" inherit_format="true">
+            <data name="bam" format="bam" from_work_dir="out.disambiguatedSpeciesA.bam" label="NGS Disambiguated Human BAM" hidden="true"/>
+            <data name="bam2" format="bam" from_work_dir="out.disambiguatedSpeciesB.bam" label="NGS Disambiguated Mouse BAM" hidden="true"/>
+            <filter>input['type'] == 'collection'</filter>
+    </collection>
+    	<collection name="human_output" type="list" label="Human Disambiguated" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.disambiguatedSpeciesA\.bam" format="bam" />
+	</collection>
+	<collection name="mouse_output" type="list" label="Mouse Disambiguated" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.disambiguatedSpeciesB\.bam" format="bam" />
+	</collection>
+	<collection name="human_ambig" type="list" label="Human ambiguous" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.ambiguousSpeciesA\.bam" format="bam" />
+	</collection>
+	<collection name="mouse_ambig" type="list" label="Mouse ambiguous" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.ambiguousSpeciesB\.bam" format="bam" />
+	</collection>-->
+</outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        This tool has following input and output dataset/collections.
+
+        **Inputs**
+
+        - Input Type:
+
+        - Unsorted bam dataset (single sample)
+
+        - Unsorted bam collection (multiple samples)
+
+
+        **Outputs**
+
+        Based on the input selection, one of the following will be output.
+
+        - Samples collection: Collection of sorted BAM files and corresponding BAI files
+        - Single sample: Sorted BAM file and corresponding BAI file.
+        ]]>
+    </help>
+</tool>

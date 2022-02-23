@@ -1,0 +1,92 @@
+<tool id="cutadapt" name="Cutadapt" version="3.4">
+    <description>trims reads for adapters and low quality base calls</description>
+    <requirements>
+	    <requirement type="package" version="3.4">cutadapt</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+            #if $input_type.samples == "single_end"
+                cutadapt -q $in_3 -o output "$input_type.single" && cutadapt -a $in_4 -m $min -o output.fastq output
+            #else if $input_type.samples == "paired_end"
+                cutadapt -q $in_3 -o forward -p reverse -a $in_4 -A $in_5 -m $min "${input_type.forward}" "${input_type.reverse}"
+	    #else
+	    	cutadapt -q $in_3 -o forward -p reverse -a $in_4 -A $in_5 -m $min "${input_type.collection_paired_reads.forward}" "${input_type.collection_paired_reads.reverse}"
+	    #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="input_type">
+            <param name="samples" type="select" label="Select input type">
+                <option value="single_end" selected="true">Single-end reads</option>
+		<option value="paired_end">Paired-end reads</option>
+		<option value="paired_collection">Paired-end Collection</option>
+            </param>
+            <when value="single_end">
+                <param format="fastq" name="single" type="data" label="Input Single-end Reads (FastQ)"/>
+            </when>
+            <when value="paired_end">
+                <param format="fastq" name="forward" type="data" label="Input Forward Reads (FastQ)"/>
+                <param format="fastq" name="reverse" type="data" label="Input Reverse Reads (FastQ)"/>
+	    </when>
+	    <when value="paired_collection">
+                <param name="collection_paired_reads" format="fastqsanger" type="data_collection"
+                       collection_type="paired"
+                       label="Select Paired-end Reads Collection"/>
+            </when>
+        </conditional>
+        <param name="in_3" format="txt" type="text" value="10" label="Amount of bases removed from the 3’ end of a read"
+		help="If you wish to specify trimming from 5’ end as well, pass the input value as two comma separated numbers 5’cutoff,3’cutoff eg. 7,12"/>
+	    <param name="min" format="txt" type="text" value="20" label="Minimal length of a read" help="Any read shorter then this will be discarded"/>
+        <param name="in_4" format="txt" type="text" value="AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC" label="Adapter sequence you wish to remove"/>
+        <param name="in_5" format="txt" type="text" value="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT" label="Reverse reads adapter"
+                help="will be used only if you are processing paired-end reads"/>
+    </inputs>
+    <outputs>
+        <!-- Single-end reads single sample output -->
+        <data name="single_read_output" format="fastq" from_work_dir="output.fastq"
+              label="Filtered Trimmed Single-end Reads">
+            <filter>input_type['samples'] == 'single_end'</filter>
+        </data>
+
+        <!-- Paired-end reads single sample output -->
+        <data name="for" format="fastq" from_work_dir="forward" label="Filtered Trimmed Forward Reads">
+            <filter>input_type['samples'] == 'paired_end'</filter>
+        </data>
+        <data name="rev" format="fastq" from_work_dir="reverse" label="Filtered Trimmed Reverse Reads">
+            <filter>input_type['samples'] == 'paired_end'</filter>
+        </data>
+        <collection name="list_output" type="paired" label="Filtered Trimmed Paired-end Reads Collection"
+		format_source="collection_paired_reads">
+		<data name="forward" format="fastq" from_work_dir="forward" label="Filtered Trimmed Forward Reads"/>
+		<data name="reverse" format="fastq" from_work_dir="reverse" label="Filtered Trimmed Reverse Reads"/>
+        	<filter>input_type['samples'] == 'paired_collection'</filter>
+        </collection>
+    </outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        This tool checks single-end or paired-end raw reads (FastQ) for overall quality, and performs some statistical analysis. Run is terminated, if less than *50% HQ reads* exists.
+
+        This tool has following input and output files.
+
+        **Inputs**
+
+        - Input type
+
+          - Single-end reads (Single sample) FastQ
+          - Paired-end reads (Single sample) FastQ
+          - Single-end reads (Multiple samples List) FastQ
+          - Paired Collection (Multiple Paired Samples) FastQ
+
+        **Outputs**
+
+        Based on the input selection two of the following will be output(s).
+
+        - Single-end reads (Single sample): Filtered trimmed reads
+        - Paired-end reads (Single sample): Filtered trimmed forward reads and Filtered trimmed reverse reads
+        - Single-end reads (Multiple samples List): Filtered trimmed single-end reads list
+        - Paired-end reads (Multiple samples Collection): Filtered trimmed paired-end reads collection
+        ]]>
+    </help>
+</tool>

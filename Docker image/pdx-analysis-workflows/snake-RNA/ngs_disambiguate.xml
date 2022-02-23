@@ -1,0 +1,139 @@
+<tool id="ngs_disambiguate" name="NGS Disambiguate" version="2018">
+    <description>to Human and Mouse reads</description>
+    <requirements>
+        <requirement type="package" version="2018">ngs-disambiguate</requirement>
+    </requirements>
+    <stdio>
+        <exit_code range="1:" level="fatal"/>
+    </stdio>
+    <command>
+        <![CDATA[
+	#if $input.type == "sample"
+		ngs_disambiguate -a $aligner.type $sort.type -s out -o . -- $input.in_h $input.in_m
+	#else	
+		#set $humans = []
+		#set $mouses = []
+		#set $prefix = []
+
+		#for $h in $input.list_human
+			#set $file_name = str($h)
+			$humans.append($file_name)
+		#end for
+
+		#for $m in $input.list_mouse
+                        #set $file_name = str($m)
+                        $mouses.append($file_name)
+		#end for
+		
+		#for $key in $input.list_human.keys()
+			#set $pref = str($key)
+			$prefix.append($pref)
+		#end for
+		#for $i in range(len($humans))
+			ngs_disambiguate -a $aligner.type -d $sort.type -s $prefix[$i] -o . -- $humans[$i] $mouses[$i] &&
+		#end for
+
+		echo "done"
+		##ngs_disambiguate -a $aligner.type -d $sort.type -s out -o . -- "${input.list_human}" "${input.list_mouse}"
+	#end if
+	]]>
+    </command>
+    <inputs>
+        <conditional name="input">
+            <param name="type" type="select" label="Select input type">
+                <option value="sample" selected="true">Single unsorted bam file (Single sample)</option>
+                <option value="collection">Multiple unsorted bam files (Collection)</option>
+            </param>
+            <when value="sample">
+                <param format="unsorted.bam" name="in_h" type="data" label="Select Human unsorted bam"/>
+                <param format="unsorted.bam" name="in_m" type="data" label="Select Mouse unsorted bam"/>
+            </when>
+            <when value="collection">
+                <param name="list_human" type="data_collection" collection_type="list" multiple="True"
+                       label="Select Human unsorted bam collection"/>
+                <param name="list_mouse" type="data_collection" collection_type="list" multiple="True"
+                       label="Select Mouse unsorted bam collection"/>
+            </when>
+        </conditional>
+        <conditional name="aligner">
+            <param name="type" type="select" label="Select aligner type">
+                <option value="star" selected="true">Star</option>
+                <option value="bwa">BWA</option>
+                <option value="tophat">Tophat</option>
+                <option value="hisat2">Hisat2</option>
+            </param>
+        </conditional>
+        <conditional name="sort">
+            <param name="type" type="select" label="Sorting bam file">
+                <option value="" selected="true">Sort</option>
+                <option value="-d">Dont sort</option>
+            </param>
+        </conditional>
+    </inputs>
+    <outputs>
+        <!-- Single-end or Paired-end reads single sample output -->
+        <data name="out_1" format="bam" from_work_dir="out.disambiguatedSpeciesA.bam" label="NGS Disambiguated Human BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_2" format="bam" from_work_dir="out.disambiguatedSpeciesB.bam" label="NGS Disambiguated Mouse BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_3" format="bam" from_work_dir="out.ambiguousSpeciesA.bam" label="NGS ambiguous Human-Mouse BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+        <data name="out_4" format="bam" from_work_dir="out.ambiguousSpeciesB.bam" label="NGS ambiguous Mouse-Human BAM">
+            <filter>input['type'] == 'sample'</filter>
+        </data>
+
+	<!-- Single-end reads multiple sample output
+        <collection name="list_output" type="list"
+                    label="Disambiguated BAM" visible="true" structured_like="input.list_human" inherit_format="true">
+            <data name="bam" format="bam" from_work_dir="out.disambiguatedSpeciesA.bam" label="NGS Disambiguated Human BAM" hidden="true"/>
+            <data name="bam2" format="bam" from_work_dir="out.disambiguatedSpeciesB.bam" label="NGS Disambiguated Mouse BAM" hidden="true"/>
+            <filter>input['type'] == 'collection'</filter>
+    </collection>-->
+    	<collection name="human_output" type="list" label="Human Disambiguated" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.disambiguatedSpeciesA\.bam" format="bam" />
+		<filter>input['type'] == 'collection'</filter>
+	</collection>
+	<collection name="mouse_output" type="list" label="Mouse Disambiguated" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.disambiguatedSpeciesB\.bam" format="bam" />
+		<filter>input['type'] == 'collection'</filter>
+	</collection>
+	<collection name="human_ambig" type="list" label="Human ambiguous" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.ambiguousSpeciesA\.bam" format="bam" />
+		<filter>input['type'] == 'collection'</filter>
+	</collection>
+	<collection name="mouse_ambig" type="list" label="Mouse ambiguous" >
+		<discover_datasets pattern="(?P&lt;name&gt;.+)\.ambiguousSpeciesB\.bam" format="bam" />
+		<filter>input['type'] == 'collection'</filter>
+	</collection>
+    </outputs>
+
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        Implementation of the second and third step of UNITO pipeline - SAMBAMBA sort unsorted bam and SAMTOOLS index
+
+
+        This tool has following input and output dataset/collections.
+
+        **Inputs**
+
+        - Input Type:
+
+        - Unsorted bam dataset (single sample)
+
+        - Unsorted bam collection (multiple samples)
+
+
+        **Outputs**
+
+        Based on the input selection, one of the following will be output.
+
+        - Samples collection: Collection of sorted BAM files and corresponding BAI files
+        - Single sample: Sorted BAM file and corresponding BAI file.
+        ]]>
+    </help>
+</tool>

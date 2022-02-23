@@ -1,0 +1,127 @@
+<tool id="qual_cutoff" name="Quality and Statistics" version="1.2.1">
+    <description>checks raw reads for overall quality</description>
+    <requirements>
+        <requirement type="package" version="0.98">bz2file</requirement>
+    </requirements>
+    <!--<requirements>
+        <container type="docker">edirex/qual_stat:1.2.1-edirex1</container>
+    </requirements>-->
+    <command detect_errors="exit_code">
+        <![CDATA[
+            python2 '${__tool_directory__}/filter_trim.py'
+            #if $input_type.samples == "single_end_single_sample"
+                -M 50 -d "$in_3" -S -ssf "$stats1" -j "single" -11 "forward" "$input_type.single_reads_input"
+            #else if $input_type.samples == "single_end_multiple_sample"
+                ##for $key in $input_type.list_single_reads.keys()#
+                ##-M 50 -d "$in_3" -S -ssf "$key".txt -j "$key" -11 "$key"_reads.fastq "${input_type.list_single_reads[$key]}";
+                -M 50 -d "$in_3" -S -ssf "$stats1" -j "${input_type.list_single_reads.element_identifier}" -11 "forward" "${input_type.list_single_reads.reads}";
+                ##end for#
+            #else if $input_type.samples == "paired_end_single_sample"
+                -M 50 -d "$in_3" -ssf "$stats1" -j "${input_type.paired_forward_reads.element_identifier}" -11 "forward" -12 "reverse" "${input_type.paired_forward_reads}" "${input_type.paired_reverse_reads}";
+            #else
+                -M 50 -d "$in_3" -ssf "$stats1" -j "${input_type.collection_paired_reads.element_identifier}" -11 "${list_output.forward}" -12 "${list_output.reverse}" "${input_type.collection_paired_reads.forward}" "${input_type.collection_paired_reads.reverse}";
+            #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="input_type">
+            <param name="samples" type="select" label="Select input type">
+                <option value="single_end_single_sample">Single-end reads (Single sample)</option>
+                <option value="paired_end_single_sample">Paired-end reads (Single sample)</option>
+                <option value="single_end_multiple_sample">Single-end reads (Samples collection)</option>
+                <option value="paired_end_multiple_sample" selected="true">Paired-end reads (Samples collection)
+                </option>
+            </param>
+            <when value="single_end_single_sample">
+                <param format="fastq" name="single_reads_input" type="data" label="Input Single-end Reads (FastQ)"/>
+            </when>
+            <when value="paired_end_single_sample">
+                <param format="fastq" name="paired_forward_reads" type="data" label="Input Forward Reads (FastQ)"/>
+                <param format="fastq" name="paired_reverse_reads" type="data" label="Input Reverse Reads (FastQ)"/>
+            </when>
+            <when value="single_end_multiple_sample">
+                <param name="list_single_reads" format="fastqsanger" type="data_collection" collection_type="list"
+                       label="Select Single-end Reads List"/>
+            </when>
+            <when value="paired_end_multiple_sample">
+                <param name="collection_paired_reads" format="fastqsanger" type="data_collection"
+                       collection_type="paired"
+                       label="Select Paired-end Reads Collection"/>
+            </when>
+        </conditional>
+        <param name="in_3" format="txt" type="hidden" value="./"/>
+    </inputs>
+    <outputs>
+        <!-- Single-end reads single sample output -->
+        <data name="single_read_output" format="fastq" from_work_dir="forward"
+              label="Filtered Trimmed Single-end Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+
+        <!-- Paired-end reads single sample output -->
+        <data name="forward" format="fastq" from_work_dir="forward" label="Filtered Trimmed Forward Reads">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="reverse" format="fastq" from_work_dir="reverse" label="Filtered Trimmed Reverse Reads">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+
+        <!-- Single-end reads multiple sample output -->
+        <!--<collection name="list_output_1" type="list" label="Filtered Trimmed Single-end Reads List" structured_like="list_single_reads" inherit_format="true">
+            <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+        </collection>-->
+        <!--<collection name="list_output_1" type="list:list" label="Filtered Trimmed Single-end Reads"  format="txt">
+             <discover_datasets pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\.fastq" ext="fastqsanger" hidden="true" />
+            <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+        </collection>-->
+        <collection name="list_output_1" type="list" label="Filtered Trimmed Single-end Reads"
+                    structured_like="list_single_reads" inherit_format="true" visible="true">
+            <data name="reads" format="fastq" from_work_dir="forward" hidden="true"/>
+            <!--<discover_datasets pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\.fastq" ext="fastqsanger" hidden="true" />-->
+            <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+        </collection>
+
+        <!-- Paired-end reads multiple sample output -->
+        <collection name="list_output" type="paired" label="Filtered Trimmed Paired-end Reads Collection"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+
+        <!-- Summary stats outputs -->
+        <data name="stats1" format="txt" label="Quality Statistics"/>
+        <!--<filter>input_type['samples'] == 'single_end_single_sample' or input_type['samples'] == 'paired_end_single_sample' or input_type['samples'] == 'paired_end_multiple_sample'</filter>
+    </data>
+    <collection name="stats2" label="Quality Statistics" type="list">
+        <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+        <discover_datasets pattern="(?P&lt;identifier_0&gt;[^_]+)\.txt" format="txt" hidden="true"/>
+    </collection>-->
+    </outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        This tool checks single-end or paired-end raw reads (FastQ) for overall quality, and performs some statistical analysis. Run is terminated, if less than *50% HQ reads* exists.
+
+        This tool has following input and output files.
+
+        **Inputs**
+
+        - Input type
+
+          - Single-end reads (Single sample) FastQ
+          - Paired-end reads (Single sample) FastQ
+          - Single-end reads (Multiple samples List) FastQ
+          - Paired Collection (Multiple Paired Samples) FastQ
+
+        **Outputs**
+
+        Based on the input selection two of the following will be output(s).
+
+        - Single-end reads (Single sample): Filtered trimmed reads
+        - Paired-end reads (Single sample): Filtered trimmed forward reads and Filtered trimmed reverse reads
+        - Single-end reads (Multiple samples List): Filtered trimmed single-end reads list
+        - Paired-end reads (Multiple samples Collection): Filtered trimmed paired-end reads collection
+        - Quality statistics summary
+        ]]>
+    </help>
+</tool>

@@ -1,0 +1,64 @@
+<tool id="cosmic_coding_noncoding_sorted" name="Sorted Cosmic Coding and Noncoding" version="1.0.0">
+    <description>for use with Variant Annotation</description>
+    <requirements>
+        <requirement type="package" version="2.21.8"> picard </requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+            #import os
+            #set ref_name=str($in_1)+'.fa'
+            #set dict_name=str($in_1)+'.dict'
+
+            ## Create a soft link for reference file
+            ln -fs $in_1 $ref_name
+
+            ##Create dict for reference genome
+            #if os.path.exists($dict_name)
+                && echo "[INFO] Dict exists."
+            #else
+                && picard CreateSequenceDictionary REFERENCE=$ref_name
+                && echo "[INFO] Dict created."
+            #end if
+
+            #if $in_2.is_of_type("vcf_bgzip") and $in_3.is_of_type("vcf_bgzip"):
+                && echo "[INFO] Files are in correct compressed format. Start Processing..."
+                && zcat $in_2 > CosmicCodingMuts.vcf
+                && zcat $in_3 | grep '^[^#]' >> CosmicCodingMuts.vcf
+                ##&& grep '^[^#]' $in_3 >> CosmicCodingMuts.vcf
+                && awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' CosmicCodingMuts.vcf > cosmic_coding_and_noncoding_chr.vcf
+                && sed 's/chrMT/chrM/g' cosmic_coding_and_noncoding_chr.vcf > cosmic_coding_and_noncoding_chr_M.vcf
+                && picard SortVcf I=cosmic_coding_and_noncoding_chr_M.vcf O=cosmic_coding_and_noncoding_chr_M_sorted.vcf SEQUENCE_DICTIONARY=$dict_name
+                && echo "[INFO] Processing finished."
+            #else:
+                && echo "[INFO] Cosmic files are not in compressed format (vcf_bzip)"
+                && echo "[INFO] Files should be in vcf_bgzip format."
+            #end if
+        ]]>
+    </command>
+    <inputs>
+        <param format="fasta" name="in_1" type="data" label="Human Reference File" help="Downloaded from https://storage.cloud.google.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta"/>
+        <param format="vcf_bgzip" name="in_2" type="data" label="CosmicCodingMuts.vcf" help="Downloaded from https://cancer.sanger.ac.uk/cosmic/download [VCF Files (Coding mutations)]"/>
+        <param format="vcf_bgzip" name="in_3" type="data" label="CosmicNonCodingVariants.vcf" help="Downloaded from https://cancer.sanger.ac.uk/cosmic/download [VCF Files (Non-coding mutations)]"/>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="vcf" from_work_dir="cosmic_coding_and_noncoding_chr_M_sorted.vcf" label="Sorted Cosmic Coding and Noncoding"/>
+    </outputs>
+
+    <help>
+        Run this tool only once when using galaxy for the first time or reference file has changed.
+
+        This tool has following input and output files.
+
+        Inputs:
+
+        1) Human Reference File (Fasta)
+
+        2) CosmicCodingMuts (VCF). This file should be bgzip (compressed) and have been uploaded to Galaxy as vcf_bgzip type.
+
+        3) CosmicNonCodingVariants (VCF). This file should be bgzip (compressed) and have been uploaded to Galaxy as vcf_bgzip type.
+
+        Outputs:
+
+        1) Sorted Cosmic Coding and Noncoding (VCF)
+    </help>
+</tool>

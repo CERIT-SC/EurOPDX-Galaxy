@@ -1,0 +1,31 @@
+<tool id="create_reference_flat" name="Create Reference Flat" version="1.0.0">
+    <description>dataset for use with PICARD Alignment tool</description>
+    <requirements>
+        <requirement type="package" version="377">ucsc-gtftogenepred</requirement>
+    </requirements>
+    <command detect_errors="aggressive">
+        <![CDATA[
+            gtfToGenePred -genePredExt "$in_1" /dev/stdout | awk 'BEGIN { OFS="\t"} {print $12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10}' > created_ref_flat_file &&
+            ls -la
+        ]]>
+    </command>
+    <inputs>
+         <param format="gtf" name="in_1" type="data" label="Gene Annotation GTF" help="Downloaded from ftp://ftp.ensembl.org/pub/release-99/gtf/homo_sapiens/Homo_sapiens.GRCh38.99.gtf.gz. And uploaded to the galaxy as a dataset."/>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="tabular" label="RefFlat Dataset"
+              from_work_dir="created_ref_flat_file"/>
+    </outputs>
+
+    <help>
+        This tool is used to create reference flat dataset for use with PICARD Alignment tool. It should be run only once when using Galaxy for the first time or gene annotation file is changed/update. This tool has following input and output files.
+
+        Inputs:
+
+        1) Gene Annotation GTF: Downloaded from ftp://ftp.ensembl.org/pub/release-99/gtf/homo_sapiens/Homo_sapiens.GRCh38.99.gtf.gz. And uploaded to the galaxy as a dataset.
+
+        Outputs:
+
+        1) RefFlat Dataset.
+    </help>
+</tool>

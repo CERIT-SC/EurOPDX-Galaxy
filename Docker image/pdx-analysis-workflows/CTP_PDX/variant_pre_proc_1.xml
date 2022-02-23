@@ -1,0 +1,171 @@
+<tool id="Variant_Pre_Processing_1" name="Variant Pre-Processing" version="1.0.0">
+    <description>tool</description>
+    <requirements>
+        <requirement type="package" version="2.21.8"> picard </requirement>
+        <requirement type="package" version="3.8"> gatk </requirement>
+        <requirement type="package" version="1.3"> samtools </requirement>
+        <requirement type="package" version="0.1.16"> perl-vcftools-vcf </requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+            #import os
+            #set ref_name="/mnt/volume/shared/ext-data-library/CTP-seq/Homo_sapiens_assembly38.fasta"
+            #set dict_name="/mnt/volume/shared/ext-data-library/CTP-seq/Homo_sapiens_assembly38.dict"
+
+            echo $ref_name &&
+            echo $dict_name &&
+
+            ##Create dict for reference genome
+            #if os.path.exists($dict_name)
+                echo "[INFO] Dict exists" &&
+            #else
+                picard CreateSequenceDictionary REFERENCE=$ref_name &&
+                echo "[INFO] Dict created" &&
+            #end if
+
+            ## Create index file for reference genome
+            #if os.path.exists(str($ref_name)+'.fai')
+                echo "[INFO] .fai exists" &&
+            #else
+                samtools faidx $ref_name &&
+                echo "[INFO] .fai created" &&
+            #end if
+
+            ## Step3.2: Picard Mark Duplicates (Removing duplicates in BAM file)
+	    #if $input.type == "single_dataset"
+                picard MarkDuplicates I="${input.in_1}" O=marked_duplicates.bam M=deduplicate_metrics REMOVE_DUPLICATES=true CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT &&
+            #else
+                picard MarkDuplicates I="${input.in_1.sortedbam}" O=marked_duplicates.bam M=deduplicate_metrics REMOVE_DUPLICATES=true CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT &&            
+            #end if
+            ## Register gatk3 jar file (TODO: Need to grab jar file at Galaxy installation)
+            ##gatk3-register /mnt/volume/shared/ext-data-library/CTP-seq/GenomeAnalysisTK-3.8-0-ge9d806836/GenomeAnalysisTK.jar &&
+
+            ## Step3.3: Realignment around indels Part I (Target Interval Creation)
+            gatk3 "-Xmx8G" -T RealignerTargetCreator \
+            -I marked_duplicates.bam \
+            -R $ref_name \
+            -o aligner.intervals \
+            -known $in_3 \
+            -known $in_4 \
+            --disable_auto_index_creation_and_locking_when_reading_rods &&
+
+            ## Step3.4: Realignment around indels Part II (Performing the local re-alignment)
+            gatk3 "-Xmx8G" -T IndelRealigner \
+            -I marked_duplicates.bam \
+            -R $ref_name \
+            -targetIntervals aligner.intervals \
+            -o realigned.bam \
+            -known $in_3 \
+            -known $in_4 \
+            --disable_auto_index_creation_and_locking_when_reading_rods &&
+
+            ## Step3.5a: Base Quality Recalibration Part I
+            ## /home/pdxuser/galaxy/database/dependencies/_conda/envs/__gatk4@4.0.5.1/bin/gatk BaseRecalibrator -I marked_duplicates.bam -R $ref_name -O recal_data.grp -known-sites "$in_5" -known-sites "$in_3" -known-sites "$in_4" &&
+            gatk3 "-Xmx8G" -T BaseRecalibrator \
+            -I realigned.bam \
+            -R $ref_name  \
+            -o recal_data.grp \
+            -knownSites $in_5 \
+            -knownSites $in_3 \
+            -knownSites $in_4 \
+            --disable_auto_index_creation_and_locking_when_reading_rods &&
+
+            ## Step3.5b: Base Quality Recalibration Part II (printing the reads)
+            ## /home/pdxuser/galaxy/database/dependencies/_conda/envs/__gatk4@4.0.5.1/bin/gatk ApplyBQSR -R $ref_name -I marked_duplicates.bam -O realigned_BQSR.bam -bqsr recal_data.grp &&
+            gatk3 "-Xmx8G" -T PrintReads \
+            -I realigned.bam \
+            -R $ref_name \
+            -o realigned_BQSR.bam \
+            -BQSR recal_data.grp \
+            --disable_auto_index_creation_and_locking_when_reading_rods &&
+
+            ## Step 3.6: Picard CalculateHsMetrics (generating target enrichment information)
+            ## First LeftOver hg19 to hg38 (.bed file downloaded from https://emea.support.illumina.com/downloads/nextera-rapid-capture-exome-v1-2-product-files.html)
+            ## using https://genome.ucsc.edu/cgi-bin/hgLiftOver
+            picard BedToIntervalList I=$in_6 O=target_interval_list SD=$dict_name &&
+
+            picard CollectHsMetrics I=realigned_BQSR.bam O=CoverageMetrics.txt R=$ref_name BAIT_INTERVALS=target_interval_list TARGET_INTERVALS=target_interval_list &&
+
+            python '${__tool_directory__}/bin/filter_dna_coverage.py' CoverageMetrics.txt
+        ]]>
+    </command>
+    <inputs>
+        <param format="vcf" name="in_5" type="hidden" value="/mnt/volume/shared/ext-data-library/CTP-seq/Homo_sapiens_assembly38.dbsnp138.vcf"/>
+        <param format="bed" name="in_6" type="hidden" value="/mnt/volume/shared/ext-data-library/CTP-seq/hglft_genome_65a93_7d8520.bed" help="First LeftOver hg19 to hg38 (.bed file downloaded from https://emea.support.illumina.com/downloads/nextera-rapid-capture-exome-v1-2-product-files.html) using https://genome.ucsc.edu/cgi-bin/hgLiftOver"/>
+        <param format="vcf" name="in_3" type="hidden" value="/mnt/volume/shared/ext-data-library/CTP-seq/Homo_sapiens_assembly38.known_indels.vcf"/>
+        <param format="vcf" name="in_4" type="hidden" value="/mnt/volume/shared/ext-data-library/CTP-seq/Mills_and_1000G_gold_standard.indels.hg38.vcf"/>
+        <conditional name="input">
+            <param name="type" type="select" label="Input Type">
+                <option value="single_dataset" selected="true">Single (Sample)</option>
+                <option value="sample_collection" >Collection (Multiple Samples)</option>
+            </param>
+            <when value="single_dataset">
+                <param format="bam" name="in_1" type="data" label="BWA-Mem Alignment"
+                       help="This dataset is generated by BWA-Mem Alignment tool."/>
+            </when>
+            <when value="sample_collection">
+                <param name="in_1" type="data_collection" collection_type="list"
+                       label="Select BWA-Mem Alignment Collection"
+                       help="Specify BWA-Mem Alignment dataset collection."/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="out_1" format="bam" from_work_dir="realigned_BQSR.bam" label="Rrealigned BQSR">
+             <filter>input['type'] == 'single_dataset'</filter>
+        </data>
+        <data name="out_2" format="txt" from_work_dir="deduplicate_metrics" label="Deduplicate Metrics">
+             <filter>input['type'] == 'single_dataset'</filter>
+        </data>
+        <data name="out_3" format="txt" from_work_dir="CoverageMetrics.txt" label="Picard HsMetrics">
+             <filter>input['type'] == 'single_dataset'</filter>
+        </data>
+
+        <collection name="list_output" type="list" label="De-duplicate Collection">
+            <data name="realigned_BQSR" format="bam" from_work_dir="realigned_BQSR.bam" hidden="true"/>
+            <data name="deduplicatemetrics" format="txt" from_work_dir="deduplicate_metrics" hidden="true"/>
+            <data name="coverageMetrics" format="txt" from_work_dir="CoverageMetrics.txt" hidden="true"/>
+            <filter>input['type'] == 'sample_collection'</filter>
+        </collection>
+    </outputs>
+
+    <help>
+        GATK steps to get ready for variant calling.
+
+        This tool has following input and output dataset/collections.
+
+        Inputs:
+
+        1) Input Type:
+
+            Dataset Collection (Multiple samples): BWA-Mem Alignment Collection. Generated by BWA-Mem Alignment tool.
+
+            Single Dataset (Single sample): BWA-Mem Alignment Collection. Generated by BWA-Mem Alignment tool.
+
+        2) Human Reference File (fasta)
+
+        3) Homo_sapiens_assembly38.known_indels.vcf
+
+        4) Mills_and_1000G_gold_standard.indels.hg38.vcf
+
+        5) Homo_sapiens_assembly38.dbsnp138.vcf
+
+        6) Target Interval List (hglft_genome_65a93_7d8520.bed)
+
+        Outputs:
+
+        Based on the input selection, following will be outputs.
+
+        1) Realigned BQSR (BAM)
+
+        2) Deduplicate Metrics
+
+        3) Picard HsMetrics
+
+        Note(s):
+        Merged Variant Pre-processing Steps in One Tool (variant_pre_proc_1.xml,variant_pre_proc_2.xml,variant_pre_proc_3.xml)
+        Files: https://emea.support.illumina.com/downloads/nextera-rapid-capture-exome-v1-2-product-files.html. LeftOver hg19 to hg38 (.bed file downloaded from https://emea.support.illumina.com/downloads/nextera-rapid-capture-exome-v1-2-product-files.html) using https://genome.ucsc.edu/cgi-bin/hgLiftOver.
+        About the resource bundle for hg38: https://gatkforums.broadinstitute.org/gatk/discussion/6798/about-the-resource-bundle-for-hg38-about-the-vcf-files
+        More info: https://gatkforums.broadinstitute.org/gatk/discussion/11359/input-files-reference-and-features-have-incompatible-contigs
+    </help>
+</tool>

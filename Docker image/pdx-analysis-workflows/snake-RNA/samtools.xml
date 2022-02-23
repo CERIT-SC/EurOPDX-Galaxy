@@ -1,0 +1,87 @@
+<tool id="samtools" name="SAMTOOLS" version="1.12">
+    <description>tool for processing bam files</description>
+    <requirements>
+	    <!--<container type="docker">samtools:latest</container>-->
+	    <requirement type="package" version="1.12">samtools</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+        #if $operation.type == "sort"
+            samtools sort -u $operation.namesort -o out.bam -@ 2 $operation.input_sort
+        #else if $operation.type == "merge"
+            samtools merge -u $operation.namesort out.bam
+            #for $input in $operation.input_merge
+                    $input
+            #end for
+        #else if $operation.type == "index"
+            samtools index $operation.CSI -@ 2 $operation.input_index out.index
+        #else
+            samtools stats $operation.duplicates -@ 2 $operation.input_stats > out.stats
+        #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="operation" label="Select operation type">
+            <param name="type" type="select">
+                <option value="sort" selected="true">Sort</option>
+                <option value="merge">Merge</option>
+                <option value="index">Index</option>
+                <option value="stats">Stats</option>
+            </param>
+            <when value="sort">
+                <param format="unsorted.bam" name="input_sort" type="data" label="Input BAM file or collection"/>
+                <param name="namesort" format="txt" type="boolean" falsevalue="" truevalue="-n" label="Sort by QNAME"/>
+            </when>
+            <when value="merge">
+                <param name="input_merge" type="data_collection" collection_type="list" label="Input Collection of BAM files to merge"/>
+                <param name="namesort" format="txt" type="boolean" falsevalue="" truevalue="-n" label="Sort by QNAME"/>
+            </when>
+    	    <when value="index">
+                <param format="unsorted.bam" name="input_index" type="data" label="Input BAM file or collection"/>
+                <param name="CSI" format="txt" type="boolean" falsevalue="-b" truevalue="-c" label="Create a CSI index (default is BAI)"/>
+            </when>
+            <when value="stats">
+                <param name="input_stats" format="unsorted.bam" type="data" label="Input BAM file or collection"/>
+                <param name="duplicates" format="txt" type="boolean" falsevalue="" truevalue="-d" label="Exclude from statistics reads marked as duplicates"/>
+            </when>
+    	</conditional>
+    </inputs>
+    <outputs>
+        <!-- Single-end reads single sample output -->
+        <data name="sort_output" format="bam" from_work_dir="out.bam" label="Sorted BAM">
+            <filter>operation['type'] == 'sort'</filter>
+	</data>
+        <data name="merge_output" format="bam" from_work_dir="out.bam" label="Merged BAM">
+            <filter>operation['type'] == 'merge'</filter>
+        </data>
+        <data name="index_output" from_work_dir="out.index" auto_format="true" label="Samtools Index">
+            <filter>operation['type'] == 'index'</filter>
+	</data>
+        <data name="stats_output" from_work_dir="out.stats" format="tabular" label="Statistics">
+            <filter>operation['type'] == 'stats'</filter>
+	</data>
+    </outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        This tool checks single-end or paired-end raw reads (FastQ) for overall quality, and performs some statistical analysis. Run is terminated, if less than *50% HQ reads* exists.
+
+        This tool has following input and output files.
+
+        **Inputs**
+
+        - Input type
+
+          - BAM file
+          - BAM collection
+
+        **Outputs**
+
+        Based on the input selection two of the following will be output(s).
+
+        - Single-end reads (Single sample): Bam file or Bai file or Statistics
+        - Single-end reads (Multiple samples List): Collection of Bam files or Bai files or Statistics
+        ]]>
+    </help>
+</tool>

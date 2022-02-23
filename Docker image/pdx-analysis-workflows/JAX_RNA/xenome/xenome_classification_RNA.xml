@@ -1,0 +1,202 @@
+<tool id="human_reads" name="Xenome Classify" version="1.3.1">
+    <description>to extract human reads from the input reads</description>
+    <requirements>
+        <requirement type="binary">python</requirement>
+        <requirement type="binary">xenome</requirement>
+    </requirements>
+    <!--<requirements>
+        <container type="docker">edirex/xenome:1.3.1-edirex1</container>
+    </requirements>-->
+
+    <command detect_errors="exit_code">
+        <![CDATA[
+			python2 '${__tool_directory__}/filter_rna_coverage.py'
+            #if $input_type.samples == "single_end_single_sample"
+                "single_end" "$input_type.single_reads_input" "$xenome_index_prefix" "$min_human_reads" "sample" "$no_of_threads"
+                && mv "sample_xenome_stat" "$stats";
+
+            #else if $input_type.samples == "single_end_multiple_sample"
+                "single_end" "${input_type.list_single_reads.reads}" "$xenome_index_prefix" "$min_human_reads" "${input_type.list_single_reads.element_identifier}" "$no_of_threads"
+                && mv "${input_type.list_single_reads.element_identifier}"_xenome_stat "$stats";
+
+            #else if $input_type.samples == "paired_end_single_sample"
+                "paired_end" "$input_type.paired_forward_reads" "$input_type.paired_reverse_reads" "$xenome_index_prefix" "$min_human_reads" "sample" "$no_of_threads"
+                && mv "sample_xenome_stat" "$stats";
+
+            #else
+                "paired_end" "${input_type.collection_paired_reads.forward}" "${input_type.collection_paired_reads.reverse}" "$xenome_index_prefix" "$min_human_reads" "${input_type.collection_paired_reads.element_identifier}" "$no_of_threads"
+                && mv "${input_type.collection_paired_reads.element_identifier}"_xenome_stat "$stats"
+            #end if
+
+            #if $input_type.samples == "paired_end_multiple_sample"
+                 && mv "human_1.fastq" "${human_output.forward}" && mv "human_2.fastq" "${human_output.reverse}"
+                 && mv "mouse_1.fastq" "${mouse_output.forward}" && mv "mouse_2.fastq" "${mouse_output.reverse}"
+                 && mv "both_1.fastq" "${both_output.forward}" && mv "both_2.fastq" "${both_output.reverse}"
+                 && mv "neither_1.fastq" "${neither_output.forward}" && mv "neither_2.fastq" "${neither_output.reverse}"
+                 && mv "ambiguous_1.fastq" "${ambiguous_output.forward}" && mv "ambiguous_2.fastq" "${ambiguous_output.reverse}"
+            #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="input_type">
+            <param name="samples" type="select" label="Select input type">
+                <option value="single_end_single_sample">Single-end reads (Single sample)</option>
+                <option value="paired_end_single_sample">Paired-end reads (Single sample)</option>
+                <option value="single_end_multiple_sample">Single-end reads (Samples collection)</option>
+                <option value="paired_end_multiple_sample" selected="true">Paired-end reads (Samples collection)
+                </option>
+            </param>
+            <when value="single_end_single_sample">
+                <param format="fastq" name="single_reads_input" type="data" label="Input Single-end Reads (FastQ)"/>
+            </when>
+            <when value="paired_end_single_sample">
+                <param format="fastq" name="paired_forward_reads" type="data" label="Input Forward Reads (FastQ)"/>
+                <param format="fastq" name="paired_reverse_reads" type="data" label="Input Reverse Reads (FastQ)"/>
+            </when>
+            <when value="single_end_multiple_sample">
+                <param name="list_single_reads" format="fastqsanger" type="data_collection" collection_type="list"
+                       multiple="True" label="Select Single-end Reads Collection"/>
+            </when>
+            <when value="paired_end_multiple_sample">
+                <param name="collection_paired_reads" format="fastqsanger" type="data_collection"
+                       collection_type="paired" label="Select Paired-end Reads Collection"/>
+            </when>
+        </conditional>
+        <param format="txt" name="xenome_index_prefix" type="text" label="Prefix" value="idx"
+               help="Specified when executing Xenome Create Index tool, e.g. 'idx'."/>
+        <param name="min_human_reads" label="Minimum Human Reads" type="integer" value="50000" min="0"
+               optional="false"/>
+        <param name="no_of_threads" label="No. of Threads" type="integer" value="1" min="1" max="8"
+               help="Value must be between [1 - 8]" optional="false"/>
+    </inputs>
+    <outputs>
+        <!-- Single-end reads single sample output -->
+        <data name="se_ss_human_out" format="fastq" from_work_dir="graft.fastq" label="Human (Graft) Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+        <data name="se_ss_mouse_out" format="fastq" from_work_dir="host.fastq" label="Mouse (Host) Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+        <data name="se_ss_both_out" format="fastq" from_work_dir="both.fastq" label="Both Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+        <data name="se_ss_neither_out" format="fastq" from_work_dir="neither.fastq" label="Neither Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+        <data name="se_ss_ambiguous_out" format="fastq" from_work_dir="ambiguous.fastq" label="Ambiguous Reads">
+            <filter>input_type['samples'] == 'single_end_single_sample'</filter>
+        </data>
+
+        <!-- Paired-end reads single sample output -->
+        <data name="out_1" format="fastq" from_work_dir="human_1.fastq" label="Human (Forward Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_2" format="fastq" from_work_dir="human_2.fastq" label="Human (Reverse Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_mouse_1" format="fastq" from_work_dir="mouse_1.fastq" label="Mouse (Forward Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_mouse_2" format="fastq" from_work_dir="mouse_2.fastq" label="Mouse (Reverse Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_both_1" format="fastq" from_work_dir="both_1.fastq" label="Both (Forward Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_both_2" format="fastq" from_work_dir="both_2.fastq" label="Both (Reverse Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_neither_1" format="fastq" from_work_dir="neither_1.fastq" label="Neither (Forward Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_neither_2" format="fastq" from_work_dir="neither_2.fastq" label="Neither (Reverse Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_ambiguous_1" format="fastq" from_work_dir="ambiguous_1.fastq" label="Ambiguous (Forward Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+        <data name="out_ambiguous_2" format="fastq" from_work_dir="ambiguous_2.fastq" label="Ambiguous (Reverse Reads)">
+            <filter>input_type['samples'] == 'paired_end_single_sample'</filter>
+        </data>
+
+        <!-- Single-end reads multiple sample output -->
+        <!--<collection name="list_output_unpaired_graft" type="list:list" label="Xenome Classified Reads"  format="txt">
+            <discover_datasets pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\.fastq" ext="fastqsanger" hidden="true" />
+           <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+       </collection>-->
+        <collection name="list_output_unpaired_graft" type="list" label="Xenome Classified Reads" format="txt"
+                    visible="true">
+            <data name="graft" format="fastq" from_work_dir="graft.fastq" hidden="true"/>
+            <data name="host" format="fastq" from_work_dir="host.fastq" hidden="true"/>
+            <data name="both" format="fastq" from_work_dir="both.fastq" hidden="true"/>
+            <data name="neither" format="fastq" from_work_dir="neither.fastq" hidden="true"/>
+            <data name="ambiguous" format="fastq" from_work_dir="ambiguous.fastq" hidden="true"/>
+            <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+        </collection>
+
+        <!-- Paired-end reads multiple sample output -->
+        <collection name="human_output" type="paired" label="Human (Paired Reads)"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+        <collection name="mouse_output" type="paired" label="Mouse (Paired Reads)"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+        <collection name="both_output" type="paired" label="Both (Paired Reads)"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+        <collection name="neither_output" type="paired" label="Neither (Paired Reads)"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+        <collection name="ambiguous_output" type="paired" label="Ambiguous (Paired Reads)"
+                    format_source="collection_paired_reads">
+            <filter>input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </collection>
+
+        <!-- Summary stats outputs -->
+        <data name="stats" format="txt" label="Xenome Statistics"/>
+        <!--    <filter>input_type['samples'] == 'single_end_single_sample' or input_type['samples'] == 'paired_end_single_sample' or input_type['samples'] == 'paired_end_multiple_sample'</filter>
+        </data>
+        <collection name="stats2" label="Xenome Statistics Summary" type="list">
+            <filter>input_type['samples'] == 'single_end_multiple_sample'</filter>
+            <discover_datasets pattern="(?P&lt;identifier_0&gt;[^_]+)_xenome_stat" format="txt" hidden="true"/>
+        </collection>-->
+    </outputs>
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        This tool **Classifies** input reads into mouse and human subsets (also both, ambiguous, and neither).
+
+        .. class:: warningmark
+
+        Please note *Xenome Create Index* must have been run by administrator at Galaxy setup before executing this tool.
+
+        This tool has following input and output datasets/collections.
+
+        **Inputs**
+
+        - Input Type
+
+          - Single-end reads (Single sample) FastQ
+          - Paired-end reads (Single sample) FastQ
+          - Single-end reads (samples collection) FastQ
+          - Paired-end reads (Samples collection) FastQ
+        - Xenome index prefix specified at index creation.
+        - Minimum Human Reads: Terminate the run if there are fewer than N human reads.
+        - Number of Xenome threads to start. Default is 1.
+
+        **Outputs**
+
+        Based on the input selection one of the following will be output.
+
+        - Single-end reads (Single sample) FastQ: Graft Reads, Host Reads, Both Reads, Neither Reads, Ambiguous Reads
+        - Paired-end reads (Single sample) FastQ: Human Forward and Reverse Reads, Mouse Forward and Reverse Reads, Both Forward and Reverse Reads, Neither Forward and Reverse Reads, Ambiguous Forward and Reverse Reads
+        - Single-end reads (samples collection) FastQ: Xenome Classified Reads (graft, host, both, neither, ambiguous)
+        - Paired-end reads (Samples collection) FastQ: Human Paired Reads, Mouse Paired Reads, Both Paired Reads, Neither Paired Reads, Ambiguous Paired Reads
+        ]]>
+    </help>
+</tool>

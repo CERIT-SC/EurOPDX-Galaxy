@@ -1,0 +1,69 @@
+<tool id="sambamba" name="SAMBAMBA" version="0.6.6">
+    <description>tool for processing bam files</description>
+    <requirements>
+        <requirement type="package" version="0.6.6">sambamba</requirement>
+    </requirements>
+    <stdio>
+        <exit_code range="1:" level="fatal"/>
+    </stdio>
+    <command>
+    <![CDATA[
+    	#if $operation.type == "sort"
+	    sambamba sort $operation.namesort -o out.bam -m 1G -u -t 2 -p $in_s
+	#else
+	    sambamba index $in_s index.bai
+	#end if
+	]]>
+    </command>
+    <inputs>
+        <param format="unsorted.bam" name="in_s" type="data" label="Select bam file"/>
+        <conditional name="operation">
+            <param name="type" type="select" label="Select operation type">
+                <option value="sort" selected="true">sambamba sort</option>
+                <option value="index">sambamba index</option>
+            </param>
+            <when value="sort">
+                <param format="txt" name="namesort" type="boolean" falsevalue="" truevalue="--sort-by-name" label="Sort by name"/>
+            </when>
+            <when value="index">
+            </when>
+        </conditional>
+	<param fromat="txt" name="static" type="hidden" value=""/>
+    </inputs>
+    <outputs>
+        <!-- Single-end or Paired-end reads single sample output -->
+        <data name="out_1" format="bam" from_work_dir="out.bam" label="SAMBAMBA sorted BAM">
+            <filter>operation['type'] == 'sort'</filter>
+        </data>
+        <data name="out_2" format="bai" from_work_dir="index.bai" label="SAMBAMBA indexed BAI">
+            <filter>operation['type'] == 'index'</filter>
+        </data>
+    </outputs>
+
+
+    <help><![CDATA[
+        .. class:: infomark
+
+        SAMBAMBA sort unsorted bam or index a bam file
+
+
+        This tool has following input and output dataset/collections.
+
+        **Inputs**
+
+        - Input Type:
+
+        - Bam dataset (single sample)
+
+        - Bam collection (multiple samples)
+
+
+        **Outputs**
+
+        Based on the input selection, one of the following will be output.
+
+        - Samples collection: Collection of sorted BAM files or BAI files
+        - Single sample: Sorted BAM file or BAI file.
+        ]]>
+    </help>
+</tool>
