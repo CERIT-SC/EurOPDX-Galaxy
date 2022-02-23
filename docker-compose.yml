@@ -9,5 +9,5 @@ services:
       - 8080:8080
 
     volumes:
-      - ../Sample_data:/import
-      - ./galaxy_instance:/galaxy/reference-data/
+      - /your/import/dir:/import
+      - /your/dir/to/store/reference/files:/galaxy/reference-data/
