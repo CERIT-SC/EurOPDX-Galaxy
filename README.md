@@ -7,9 +7,39 @@ To use this docker image, you need to have [Docker](https://docs.docker.com/get-
 
 This is a tutorial for UNIX-like environment (Lunix, MacOS)
 
+### Setup a work-dir
+```bash
+mkdir ~/docker-galaxy
+cd ~/docker-galaxy
+mkdir reference-data
+```
+
 ### Download the docker-compose.yml
+
+In the `~/docker-galaxy` directory 
+
 ```bash
 wget https://raw.githubusercontent.com/BorisYourich/EurOPDX-Galaxy/main/docker-compose.yml
+```
+
+### Configure
+
+
+
+```yaml
+version: '3.5'
+
+services:
+  galaxy:
+    container_name: galaxy
+    restart: always
+    image: edirex/galaxy:latest
+    ports:
+      - 8080:8080
+
+    volumes:
+      - /your/import/dir:/import
+      - /your/dir/to/store/reference/files:/galaxy/reference-data/
 ```
 
 
